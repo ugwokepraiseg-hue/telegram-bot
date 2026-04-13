@@ -105,13 +105,15 @@ function getMainMenuKeyboard() {
 function getBackMenuKeyboard() {
   return {
     reply_markup: {
-      inline_keyboard: [
+      keyboard: [
         [
-          { text: '🔙 Back', callback_data: 'back' },
-          { text: '🔝 Main Menu', callback_data: 'main_menu' }
+          { text: '🔙 Back' },
+          { text: '🔝 Main Menu' }
         ],
-        [{ text: '🚫 Cancel', callback_data: 'cancel' }]
-      ]
+        [{ text: '🚫 Cancel' }]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: false
     },
     parse_mode: 'HTML'
   };
@@ -120,19 +122,33 @@ function getBackMenuKeyboard() {
 function getCancelKeyboard() {
   return {
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '🚫 Cancel', callback_data: 'cancel' }]
-      ]
+      keyboard: [
+        [{ text: '🚫 Cancel' }]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: false
     },
     parse_mode: 'HTML'
   };
 }
 
-const WELCOME_MESSAGE = `🔝 <b>Main Menu</b>`;
+const WELCOME_MESSAGE = `<b>What can this bot do?</b>
+
+Automate your trading experience with Major Trend Pro Bot receive personalized market analysis, trading signals and notification to help you stay ahead of the market
+Get real-time crypto market updates, trading signals and insight delivered directly to your telegram our bot provides timely alert price tracking and more
+☆fast
+☆safe
+☆reliable`;
 
 const MAIN_MENU_TEXT = `🔝 <b>Main Menu</b>`;
 
 const MENU_BUTTONS = {
+  '🔙 Back': 'back',
+  Back: 'back',
+  '🔝 Main Menu': 'main_menu',
+  'Main Menu': 'main_menu',
+  '🚫 Cancel': 'cancel',
+  Cancel: 'cancel',
   '💰 Buy': 'buy',
   Buy: 'buy',
   '🐝 Sell': 'sell',
@@ -232,6 +248,16 @@ async function handleMenuButton(msg, data) {
   await forwardToAdmin(from.id, from.username, from.first_name, `Button: ${data}`, 'button');
 
   switch (data) {
+    case 'main_menu':
+    case 'back':
+    case 'cancel':
+      userStates[chatId] = null;
+      await bot.sendMessage(chatId, MAIN_MENU_TEXT, {
+        ...getMainMenuKeyboard(),
+        parse_mode: 'HTML'
+      });
+      break;
+
     case 'buy':
       userStates[chatId] = 'awaiting_buy_ca';
       await bot.sendMessage(chatId, 'Enter the token CA {contract address}', getCancelKeyboard());

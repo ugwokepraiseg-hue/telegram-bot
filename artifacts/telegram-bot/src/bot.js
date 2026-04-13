@@ -10,6 +10,7 @@ if (!TOKEN) {
 
 let bot;
 let isShuttingDown = false;
+let tokenInvalid = false;
 
 const userStates = {};
 const adminReplyTargets = {};
@@ -25,6 +26,15 @@ function createBot() {
 
   bot.on('polling_error', (error) => {
     console.error('Polling error:', error.code, error.message);
+    if (error.message && (error.message.includes('401 Unauthorized') || error.message.includes('SESSION_REVOKED'))) {
+      tokenInvalid = true;
+      isShuttingDown = true;
+      console.error('Telegram bot token is invalid or revoked. Add a fresh TELEGRAM_BOT_TOKEN from BotFather and restart the workflow.');
+      try {
+        bot.stopPolling();
+      } catch (e) {}
+      return;
+    }
     if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
       console.log('Conflict detected - another instance may be running. Retrying in 5s...');
       setTimeout(() => {
@@ -42,7 +52,7 @@ function createBot() {
 }
 
 function restartBot() {
-  if (isShuttingDown) return;
+  if (isShuttingDown || tokenInvalid) return;
   console.log('Restarting bot...');
   try {
     if (bot) bot.stopPolling();

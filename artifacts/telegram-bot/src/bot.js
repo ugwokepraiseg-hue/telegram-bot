@@ -11,6 +11,7 @@ if (!TOKEN) {
 let bot;
 let isShuttingDown = false;
 let tokenInvalid = false;
+let restartTimer = null;
 
 const userStates = {};
 const adminReplyTargets = {};
@@ -37,14 +38,15 @@ function createBot() {
     }
     if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
       console.log('Conflict detected - another instance may be running. Retrying in 5s...');
-      setTimeout(() => {
-        if (!isShuttingDown) restartBot();
-      }, 5000);
+      scheduleRestart('Telegram polling conflict', 5000);
+      return;
     }
+    scheduleRestart('Telegram polling error', 10000);
   });
 
   bot.on('error', (error) => {
     console.error('Bot error:', error.message);
+    scheduleRestart('Telegram bot error', 10000);
   });
 
   registerHandlers();
@@ -60,6 +62,15 @@ function restartBot() {
   setTimeout(() => {
     if (!isShuttingDown) createBot();
   }, 3000);
+}
+
+function scheduleRestart(reason, delay = 5000) {
+  if (isShuttingDown || tokenInvalid || restartTimer) return;
+  console.error(`${reason}. Restart scheduled in ${delay}ms.`);
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
+    restartBot();
+  }, delay);
 }
 
 function getMainMenuKeyboard() {
@@ -777,13 +788,12 @@ function registerHandlers() {
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught exception:', error.message);
-  setTimeout(() => {
-    if (!isShuttingDown) restartBot();
-  }, 5000);
+  scheduleRestart('Uncaught exception', 5000);
 });
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled rejection:', reason);
+  scheduleRestart('Unhandled promise rejection', 5000);
 });
 
 process.on('SIGTERM', () => {
@@ -805,3 +815,15 @@ createBot();
 setInterval(() => {
   console.log(`[${new Date().toISOString()}] Bot is alive. Uptime: ${Math.floor(process.uptime())}s`);
 }, 300000);
+
+setInterval(() => {
+  if (!bot || isShuttingDown || tokenInvalid) return;
+  try {
+    if (typeof bot.isPolling === 'function' && !bot.isPolling()) {
+      scheduleRestart('Polling stopped unexpectedly', 1000);
+    }
+  } catch (error) {
+    console.error('Polling watchdog check failed:', error.message);
+    scheduleRestart('Polling watchdog failed', 1000);
+  }
+}, 60000);

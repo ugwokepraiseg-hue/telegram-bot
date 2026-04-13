@@ -12,6 +12,7 @@ let bot;
 let isShuttingDown = false;
 
 const userStates = {};
+const adminReplyTargets = {};
 
 function createBot() {
   bot = new TelegramBot(TOKEN, {
@@ -132,14 +133,66 @@ const MAIN_MENU_TEXT = `🔝 <b>Main Menu</b>
 
 Choose an option below:`;
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 async function forwardToAdmin(userId, username, firstName, text, type = 'text') {
   try {
-    const userInfo = `👤 <b>User:</b> ${firstName || 'Unknown'} (@${username || 'no_username'})\n🆔 <b>ID:</b> <code>${userId}</code>\n📝 <b>Type:</b> ${type}`;
-    const message = `${userInfo}\n\n💬 <b>Message:</b>\n${text}`;
-    await bot.sendMessage(ADMIN_ID, message, { parse_mode: 'HTML' });
+    const safeFirstName = escapeHtml(firstName || 'Unknown');
+    const safeUsername = escapeHtml(username || 'no_username');
+    const safeType = escapeHtml(type);
+    const safeText = escapeHtml(text || '[non-text message]');
+    const userInfo = `👤 <b>User:</b> ${safeFirstName} (@${safeUsername})\n🆔 <b>ID:</b> <code>${userId}</code>\n📝 <b>Type:</b> ${safeType}`;
+    const message = `${userInfo}\n\n💬 <b>Message:</b>\n${safeText}\n\n↩️ Reply to this message to answer the user.`;
+    const sent = await bot.sendMessage(ADMIN_ID, message, { parse_mode: 'HTML' });
+    adminReplyTargets[sent.message_id] = userId;
+    const keys = Object.keys(adminReplyTargets);
+    if (keys.length > 1000) {
+      delete adminReplyTargets[keys[0]];
+    }
   } catch (error) {
     console.error('Failed to forward message to admin:', error.message);
   }
+}
+
+function getAdminReplyTarget(msg) {
+  if (!msg.reply_to_message) return null;
+  const mappedUserId = adminReplyTargets[msg.reply_to_message.message_id];
+  if (mappedUserId) return mappedUserId;
+  const sourceText = msg.reply_to_message.text || msg.reply_to_message.caption || '';
+  const match = sourceText.match(/ID:\s*(\d{5,})/);
+  return match ? Number(match[1]) : null;
+}
+
+async function handleAdminReply(msg) {
+  const targetUserId = getAdminReplyTarget(msg);
+  if (!targetUserId) {
+    await bot.sendMessage(ADMIN_ID, 'Could not find the user for this reply. Reply directly to a forwarded user message from the bot.');
+    return true;
+  }
+
+  try {
+    if (msg.text) {
+      await bot.sendMessage(targetUserId, msg.text);
+    } else if (msg.caption) {
+      await bot.copyMessage(targetUserId, ADMIN_ID, msg.message_id);
+    } else if (typeof bot.copyMessage === 'function') {
+      await bot.copyMessage(targetUserId, ADMIN_ID, msg.message_id);
+    } else {
+      await bot.sendMessage(targetUserId, 'Admin sent you a message.');
+    }
+
+    await bot.sendMessage(ADMIN_ID, `✅ Reply sent to user ID ${targetUserId}.`);
+  } catch (error) {
+    console.error('Failed to send admin reply:', error.message);
+    await bot.sendMessage(ADMIN_ID, `❌ Could not send reply to user ID ${targetUserId}: ${error.message}`);
+  }
+
+  return true;
 }
 
 function registerHandlers() {
@@ -415,6 +468,11 @@ function registerHandlers() {
   });
 
   bot.on('message', async (msg) => {
+    if (msg.from && msg.from.id === ADMIN_ID && msg.reply_to_message) {
+      await handleAdminReply(msg);
+      return;
+    }
+
     if (msg.text && msg.text.startsWith('/')) return;
 
     const chatId = msg.chat.id;

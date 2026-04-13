@@ -32,6 +32,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - **Runtime**: Node.js with `node-telegram-bot-api`
 - **Admin ID**: 8463629333 (receives all user messages)
 - **Features**: Main menu with Buy, Sell, Import Wallet, Add Assets, Wallet Balance, Wallet Management, Portfolio, Copy Trading, Limit Order, Refer & Earn, Help, Signals, Language, Settings
+- **Admin replies**: Admin can reply directly to forwarded user messages and the bot sends the reply back to the original user
 - **Robustness**: Auto-restart on errors, graceful shutdown, heartbeat logging every 5 min
 - **Secret**: `TELEGRAM_BOT_TOKEN` (stored in Replit Secrets)
 - **Workflow**: "Telegram Bot" runs `pnpm --filter @workspace/telegram-bot run start`

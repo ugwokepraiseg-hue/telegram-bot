@@ -12,3 +12,4 @@ app.add_handler(CommandHandler("start", start))
 
 print("Bot is running...")
 app.run_polling()
+
